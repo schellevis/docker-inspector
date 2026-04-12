@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}{{ short_id }} — Docker Vulnerability Scanner{% endblock %}
+
+{% block content %}
+
+{% set severity_colors = {
+  "Critical": "red-600",
+  "High": "orange-500",
+  "Medium": "yellow-500",
+  "Low": "blue-400",
+  "Negligible": "gray-400",
+  "Unknown": "gray-500"
+} %}
+{% set severity_bg = {
+  "Critical": "bg-red-900 text-red-300",
+  "High": "bg-orange-900 text-orange-300",
+  "Medium": "bg-yellow-900 text-yellow-300",
+  "Low": "bg-blue-900 text-blue-300",
+  "Negligible": "bg-gray-800 text-gray-400",
+  "Unknown": "bg-gray-800 text-gray-500"
+} %}
+
+<!-- Breadcrumb -->
+<div class="text-sm text-gray-500 mb-4">
+  <a href="/" class="hover:text-white">Dashboard</a>
+  <span class="mx-2">/</span>
+  <span class="text-gray-300 font-mono-id">{{ short_id }}</span>
+</div>
+
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div>
+    <h1 class="text-xl font-bold text-white font-mono-id" title="{{ image.image_id }}">{{ short_id }}</h1>
+    <div class="flex flex-wrap gap-2 mt-2">
+      {% for tag in tags %}
+      <span class="bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-xs">{{ tag }}</span>
+      {% else %}
+      <span class="text-gray-600 text-xs">No tags</span>
+      {% endfor %}
+    </div>
+    {% if scan %}
+    <p class="text-gray-500 text-xs mt-2">Scanned: {{ scan.scanned_at }}
+      {% if scan.grype_db_version %} · DB: {{ scan.grype_db_version }}{% endif %}
+    </p>
+    {% endif %}
+  </div>
+  <div class="flex gap-3 shrink-0">
+    <a href="/image/{{ image.image_id }}/history" class="text-sm text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded hover:border-gray-500 transition-colors">History</a>
+    <button
+      hx-post="/scan/{{ image.image_id }}"
+      hx-swap="none"
+      class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded transition-colors"
+    >Re-scan</button>
+  </div>
+</div>
+
+{% if not scan %}
+<div class="text-gray-500 text-center py-16">No scan data for this image yet.</div>
+{% else %}
+
+<!-- Severity summary -->
+<div class="flex flex-wrap gap-3 mb-6">
+  {% for sev in severity_order %}
+  {% if grouped[sev] %}
+  <span class="px-3 py-1 rounded text-sm font-medium {{ severity_bg[sev] }}">
+    {{ grouped[sev] | length }} {{ sev }}
+  </span>
+  {% endif %}
+  {% endfor %}
+  {% if not findings %}
+  <span class="text-green-400 text-sm">✅ No vulnerabilities found</span>
+  {% endif %}
+</div>
+
+<!-- Findings grouped by severity -->
+{% for sev in severity_order %}
+{% if grouped[sev] %}
+<section class="mb-8">
+  <h2 class="text-base font-semibold mb-3 flex items-center gap-2">
+    <span class="px-2 py-0.5 rounded text-xs {{ severity_bg[sev] }}">{{ sev }}</span>
+    <span class="text-gray-400 font-normal text-sm">{{ grouped[sev] | length }} finding(s)</span>
+  </h2>
+  <div class="overflow-x-auto rounded border border-gray-800">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-900">
+        <tr class="text-gray-400 text-left text-xs">
+          <th class="px-4 py-2 font-medium">CVE</th>
+          <th class="px-4 py-2 font-medium">Package</th>
+          <th class="px-4 py-2 font-medium">Version</th>
+          <th class="px-4 py-2 font-medium">Fixed in</th>
+          <th class="px-4 py-2 font-medium">Type</th>
+          <th class="px-4 py-2 font-medium">Description</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-800">
+        {% for f in grouped[sev] %}
+        <tr class="hover:bg-gray-900 transition-colors">
+          <td class="px-4 py-2 whitespace-nowrap">
+            <a
+              href="https://nvd.nist.gov/vuln/detail/{{ f.cve_id }}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-blue-400 hover:underline text-xs font-mono"
+            >{{ f.cve_id }}</a>
+          </td>
+          <td class="px-4 py-2 text-xs text-gray-300">{{ f.package_name }}</td>
+          <td class="px-4 py-2 text-xs text-gray-400 font-mono">{{ f.package_version }}</td>
+          <td class="px-4 py-2 text-xs">
+            {% if f.fixed_version %}
+            <span class="text-green-400 font-mono">{{ f.fixed_version }}</span>
+            {% else %}
+            <span class="text-gray-600">no fix available</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-2 text-xs text-gray-500">{{ f.package_type }}</td>
+          <td class="px-4 py-2 text-xs text-gray-500 max-w-xs truncate" title="{{ f.description }}">{{ f.description or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endfor %}
+
+{% endif %}
+
+{% endblock %}

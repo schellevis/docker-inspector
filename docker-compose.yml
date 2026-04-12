@@ -1,0 +1,15 @@
+services:
+  scanner:
+    build: .
+    container_name: docker-vuln-scanner
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data:/data
+    environment:
+      - TZ=Europe/Amsterdam
+      - GRYPE_DB_CACHE_DIR=/data/grype-db
+      - SCANNER_DB_PATH=/data/scanner.db
+      - SCAN_CRON=0 3 * * *

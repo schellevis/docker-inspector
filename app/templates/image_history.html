@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Scan History — {{ short_id }}{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="text-sm text-gray-500 mb-4">
+  <a href="/" class="hover:text-white">Dashboard</a>
+  <span class="mx-2">/</span>
+  <a href="/image/{{ image.image_id }}" class="hover:text-white font-mono-id">{{ short_id }}</a>
+  <span class="mx-2">/</span>
+  <span class="text-gray-300">History</span>
+</div>
+
+<h1 class="text-xl font-bold text-white mb-1">Scan History</h1>
+<div class="flex flex-wrap gap-2 mb-6">
+  {% for tag in tags %}
+  <span class="bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-xs">{{ tag }}</span>
+  {% else %}
+  <span class="text-gray-600 text-xs">No tags</span>
+  {% endfor %}
+</div>
+
+{% if scans %}
+<div class="overflow-x-auto rounded border border-gray-800">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-900">
+      <tr class="text-gray-400 text-left text-xs">
+        <th class="px-4 py-3 font-medium">Scan ID</th>
+        <th class="px-4 py-3 font-medium">Date</th>
+        <th class="px-4 py-3 font-medium">Findings</th>
+        <th class="px-4 py-3 font-medium">Grype DB</th>
+        <th class="px-4 py-3 font-medium">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-800">
+      {% for scan in scans %}
+      <tr class="hover:bg-gray-900 transition-colors">
+        <td class="px-4 py-3 text-gray-500 text-xs font-mono">#{{ scan.scan_id }}</td>
+        <td class="px-4 py-3 text-xs text-gray-300">{{ scan.scanned_at }}</td>
+        <td class="px-4 py-3 text-xs">
+          {% if scan.finding_count > 0 %}
+          <span class="text-orange-400 font-semibold">{{ scan.finding_count }}</span>
+          {% else %}
+          <span class="text-green-400">0</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-xs text-gray-500">{{ scan.grype_db_version or "—" }}</td>
+        <td class="px-4 py-3 text-xs">
+          <a href="/image/{{ image.image_id }}" class="text-blue-400 hover:underline">Latest</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-gray-500 text-center py-16">No scan history for this image.</div>
+{% endif %}
+
+{% endblock %}
