@@ -105,7 +105,10 @@ def insert_scan(image_id: str, grype_db_version: str | None, finding_count: int)
             """,
             (image_id, now, grype_db_version, finding_count),
         )
-        return cur.lastrowid  # type: ignore[return-value]
+        scan_id = cur.lastrowid
+        if scan_id is None:
+            raise RuntimeError("Failed to insert scan row — lastrowid is None")
+        return scan_id
 
 
 def get_scans_for_image(image_id: str) -> list[dict]:

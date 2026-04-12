@@ -36,7 +36,12 @@ def setup_scheduler(scan_all_fn) -> None:
     try:
         trigger = _parse_cron(cron_expr)
     except ValueError as exc:
-        logger.warning("Invalid SCAN_CRON %r (%s); falling back to '0 3 * * *'", cron_expr, exc)
+        logger.warning(
+            "Invalid SCAN_CRON %r (%s); falling back to '0 3 * * *'. "
+            "Expected format: 'minute hour day month day_of_week' (e.g. '0 3 * * *').",
+            cron_expr,
+            exc,
+        )
         trigger = CronTrigger(hour=3, minute=0)
 
     scheduler.add_job(

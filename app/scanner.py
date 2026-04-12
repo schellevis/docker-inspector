@@ -137,11 +137,17 @@ def scan_image(image_id: str) -> dict[str, Any]:
             timeout=600,
         )
         if result.returncode != 0:
+            stderr = result.stderr.strip()
+            # Log both start and end so neither context is lost for long error messages
+            if len(stderr) > 1000:
+                stderr_display = stderr[:500] + "\n…\n" + stderr[-500:]
+            else:
+                stderr_display = stderr
             logger.error(
                 "Grype exited %d for %s: %s",
                 result.returncode,
                 image_id[:20],
-                result.stderr.strip()[-500:],
+                stderr_display,
             )
             return {"grype_db_version": None, "findings": []}
 

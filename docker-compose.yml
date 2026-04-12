@@ -9,7 +9,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./data:/data
     environment:
-      - TZ=Europe/Amsterdam
+      - TZ=Europe/Amsterdam  # Change to your local timezone (e.g., America/New_York)
       - GRYPE_DB_CACHE_DIR=/data/grype-db
       - SCANNER_DB_PATH=/data/scanner.db
       - SCAN_CRON=0 3 * * *
