@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Docker Vulnerability Scanner{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-white">Dashboard</h1>
+    {% if last_scan_time %}
+    <p class="text-gray-500 text-sm mt-1">Last scan: {{ last_scan_time }}</p>
+    {% else %}
+    <p class="text-gray-500 text-sm mt-1">No scans yet — click <strong>Scan now</strong> to start.</p>
+    {% endif %}
+  </div>
+
+  <div class="flex items-center gap-4">
+    <!-- Grype DB age warning -->
+    {% if db_age_days is not none %}
+      {% if db_age_days > 7 %}
+      <span class="text-yellow-400 text-sm font-medium">⚠ Grype DB is {{ db_age_days | int }} days old</span>
+      {% else %}
+      <span class="text-gray-500 text-sm">Grype DB: {{ db_age_days | int }}d old</span>
+      {% endif %}
+    {% endif %}
+
+    <!-- Scan now button -->
+    <div id="scan-control">
+      <button
+        hx-post="/scan"
+        hx-target="#scan-control"
+        hx-swap="innerHTML"
+        hx-indicator="#scan-indicator"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+      >
+        Scan now
+      </button>
+    </div>
+    <span id="scan-indicator" class="htmx-indicator text-gray-400 text-sm">Scanning…</span>
+  </div>
+</div>
+
+<!-- Scan status poller (active when scan is running) -->
+{% if scan_status == "running" %}
+<div
+  id="scan-status-banner"
+  hx-get="/scan/status"
+  hx-trigger="every 2s"
+  hx-swap="outerHTML"
+  class="mb-4 px-4 py-2 bg-blue-900 text-blue-200 rounded text-sm"
+>
+  🔄 Scan in progress…
+</div>
+{% elif scan_status == "done" %}
+<div class="mb-4 px-4 py-2 bg-green-900 text-green-200 rounded text-sm">
+  ✅ Scan complete. <a href="/" class="underline">Refresh</a> to see results.
+</div>
+{% elif scan_status == "error" %}
+<div class="mb-4 px-4 py-2 bg-red-900 text-red-200 rounded text-sm">
+  ❌ Scan encountered an error. Check container logs.
+</div>
+{% endif %}
+
+{% if rows %}
+<div class="overflow-x-auto rounded border border-gray-800">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-900 sticky top-0">
+      <tr class="text-gray-400 text-left">
+        <th class="px-4 py-3 font-medium">Image</th>
+        <th class="px-4 py-3 font-medium">Tags</th>
+        <th class="px-4 py-3 font-medium text-red-400">Crit</th>
+        <th class="px-4 py-3 font-medium text-orange-400">High</th>
+        <th class="px-4 py-3 font-medium text-yellow-400">Med</th>
+        <th class="px-4 py-3 font-medium text-blue-400">Low</th>
+        <th class="px-4 py-3 font-medium text-gray-400">Neg</th>
+        <th class="px-4 py-3 font-medium">Last scan</th>
+        <th class="px-4 py-3 font-medium">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-800">
+      {% for row in rows %}
+      <tr class="hover:bg-gray-900 transition-colors">
+        <td class="px-4 py-3">
+          <a href="/image/{{ row.image_id }}" class="hover:underline">
+            <code
+              class="font-mono-id text-xs text-gray-300"
+              title="{{ row.image_id }}"
+            >{{ row.short_id }}</code>
+          </a>
+        </td>
+        <td class="px-4 py-3 text-gray-400 text-xs">
+          {% for tag in row.tags %}
+          <span class="inline-block bg-gray-800 px-2 py-0.5 rounded mr-1 mb-1">{{ tag }}</span>
+          {% else %}
+          <span class="text-gray-600">—</span>
+          {% endfor %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          {% if row.Critical > 0 %}
+          <span class="inline-block min-w-[2rem] text-center px-2 py-0.5 rounded bg-red-900 text-red-300 font-bold text-xs">{{ row.Critical }}</span>
+          {% else %}<span class="text-gray-700">0</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          {% if row.High > 0 %}
+          <span class="inline-block min-w-[2rem] text-center px-2 py-0.5 rounded bg-orange-900 text-orange-300 font-bold text-xs">{{ row.High }}</span>
+          {% else %}<span class="text-gray-700">0</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          {% if row.Medium > 0 %}
+          <span class="inline-block min-w-[2rem] text-center px-2 py-0.5 rounded bg-yellow-900 text-yellow-300 text-xs">{{ row.Medium }}</span>
+          {% else %}<span class="text-gray-700">0</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          {% if row.Low > 0 %}
+          <span class="inline-block min-w-[2rem] text-center px-2 py-0.5 rounded bg-blue-900 text-blue-300 text-xs">{{ row.Low }}</span>
+          {% else %}<span class="text-gray-700">0</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center text-gray-600 text-xs">{{ row.Negligible }}</td>
+        <td class="px-4 py-3 text-gray-500 text-xs">{{ row.last_scan or "—" }}</td>
+        <td class="px-4 py-3 text-xs flex gap-2">
+          <a href="/image/{{ row.image_id }}" class="text-blue-400 hover:underline">Detail</a>
+          <a href="/image/{{ row.image_id }}/history" class="text-gray-500 hover:underline">History</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="mt-16 text-center text-gray-600">
+  <p class="text-5xl mb-4">🔍</p>
+  <p class="text-lg">No images scanned yet.</p>
+  <p class="text-sm mt-2">Click <strong class="text-white">Scan now</strong> to inventory running containers and scan for vulnerabilities.</p>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}CVE Diff — Docker Vulnerability Scanner{% endblock %}
+
+{% block content %}
+
+<h1 class="text-2xl font-bold text-white mb-2">CVE Diff</h1>
+<p class="text-gray-500 text-sm mb-6">New and resolved CVEs since the previous scan run, grouped by image.</p>
+
+{% if not diff_data %}
+<div class="text-center py-16 text-gray-600">
+  <p class="text-4xl mb-4">✅</p>
+  <p class="text-lg">No changes detected.</p>
+  <p class="text-sm mt-2">Either only one scan has been run, or the CVE set has not changed.</p>
+</div>
+{% else %}
+
+{% for item in diff_data %}
+<div class="mb-10 border border-gray-800 rounded overflow-hidden">
+  <!-- Image header -->
+  <div class="bg-gray-900 px-4 py-3 flex items-center gap-3">
+    <a href="/image/{{ item.image_id }}" class="font-mono-id text-xs text-gray-300 hover:underline" title="{{ item.image_id }}">{{ item.short_id }}</a>
+    {% for tag in item.tags %}
+    <span class="bg-gray-800 text-gray-400 px-2 py-0.5 rounded text-xs">{{ tag }}</span>
+    {% endfor %}
+    <span class="ml-auto text-gray-600 text-xs">
+      {{ item.previous_scan or "first scan" }} → {{ item.latest_scan }}
+    </span>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-800">
+
+    <!-- New CVEs -->
+    <div class="p-4">
+      <h3 class="text-sm font-semibold text-red-400 mb-3">
+        🆕 New ({{ item.new_cves | length }})
+      </h3>
+      {% if item.new_cves %}
+      <ul class="space-y-1">
+        {% for cve in item.new_cves %}
+        <li class="text-xs font-mono">
+          <a
+            href="https://nvd.nist.gov/vuln/detail/{{ cve }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-red-300 hover:underline"
+          >{{ cve }}</a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-gray-600 text-xs">None</p>
+      {% endif %}
+    </div>
+
+    <!-- Resolved CVEs -->
+    <div class="p-4">
+      <h3 class="text-sm font-semibold text-green-400 mb-3">
+        ✅ Resolved ({{ item.resolved_cves | length }})
+      </h3>
+      {% if item.resolved_cves %}
+      <ul class="space-y-1">
+        {% for cve in item.resolved_cves %}
+        <li class="text-xs font-mono">
+          <a
+            href="https://nvd.nist.gov/vuln/detail/{{ cve }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-300 hover:underline"
+          >{{ cve }}</a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-gray-600 text-xs">None</p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endfor %}
+
+{% endif %}
+
+{% endblock %}
